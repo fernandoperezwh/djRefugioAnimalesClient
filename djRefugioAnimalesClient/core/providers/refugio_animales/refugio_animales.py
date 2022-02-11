@@ -6,7 +6,6 @@ import requests
 # local packages
 from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
     DjRefugioAnimalesServerConnectionError,
-    DjRefugioAnimalesForbiddenError,
     DjRefugioAnimalesServerUnknowError,
     DjRefugioAnimalesNotFoundError,
     DjRefugioAnimalesBadRequestError,
@@ -90,24 +89,6 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             'Authorization': self.__auth.fmt_access_token,
         }
 
-    def get_token_type(self):
-        """
-        Token type para API de Refugio de animales
-        """
-        return self.__auth.token_type
-
-    def get_access_token(self):
-        """
-        Access token para API de Refugio de animales
-        """
-        return self.__auth.access_token
-
-    def get_refresh_token(self):
-        """
-        Refresh token para API de Refugio de animales
-        """
-        return self.__auth.refresh_token
-
     def __get_resource(self, endpoint):
         """
         Funcion generica que consulta algun recurso.
@@ -117,10 +98,16 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
         """
         try:
             response = requests.get(endpoint, headers=self.headers)
+            # No se encontro el recurso solicitado
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
+            # No tiene permisos para acceder al recurso
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara una excepcion.
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__get_resource(endpoint)
             return response.json()
         except CONNECTION_ERROR:
             raise DjRefugioAnimalesServerConnectionError
@@ -138,9 +125,13 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             # Error por body incorrecto del request
             if response.status_code == 400:
                 raise DjRefugioAnimalesBadRequestError
-            # Error en permisos
+            # No tiene permisos para acceder al recurso
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara una excepcion.
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__create_resource(endpoint, payload)
             # verifica algun error desconocido
             if response.status_code != 201:
                 raise DjRefugioAnimalesServerUnknowError
@@ -163,9 +154,13 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             if response.status_code == 400:
                 # NOTE: Podria especificarse los campos para dar información al cliene
                 raise DjRefugioAnimalesBadRequestError
-            # Error en permisos
+            # Forbidden error
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara una excepcion.
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__edit_resource(endpoint, payload)
             # Elemento no encontrado
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
@@ -187,7 +182,11 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
         try:
             response = requests.delete(endpoint, headers=self.headers)
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara la excepcion
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__delete_resource(endpoint)
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
             # verifica algun error desconocido
