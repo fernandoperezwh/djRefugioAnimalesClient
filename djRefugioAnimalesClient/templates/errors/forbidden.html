@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %} {% endblock %}
+
+{% block main_content %}
+
+    <div class="container">
+        <div class="row">
+            <h1>¡Ups!... Parece que no tienes permisos para acceder al recurso.</h1>
+            <h3><a href="{% url 'home' %}">No te preocupes, podemos regresarte a tu hogar.</a></h3>
+        </div>
+    </div>
+{% endblock  %}
+
+
+

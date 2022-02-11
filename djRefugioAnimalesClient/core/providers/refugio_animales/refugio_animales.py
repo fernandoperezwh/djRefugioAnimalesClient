@@ -6,158 +6,18 @@ import requests
 # local packages
 from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
     DjRefugioAnimalesServerConnectionError,
-    DjRefugioAnimalesForbiddenError,
     DjRefugioAnimalesServerUnknowError,
     DjRefugioAnimalesNotFoundError,
     DjRefugioAnimalesBadRequestError,
 )
+from djRefugioAnimalesClient.core.providers.refugio_animales.auth import TokenAuthentication, \
+    JSONWebTokenAuthentication, OAuth2Authentication
+from djRefugioAnimalesClient.core.providers.refugio_animales.classes import RefugioAnimalesBase
 
 CONNECTION_ERROR = (
     requests.ConnectTimeout,
     requests.ConnectionError,
 )
-
-
-# region Base classes
-class RefugioAnimalesBase(object):
-    """
-    Clase base del API Refugio de Animales
-    """
-    def __init__(self, host=None, port=None):
-        self._host = host or self.__default_server_host
-        self._port = port or self.__default_server_port
-
-    @property
-    def __default_server_host(self):
-        """
-        Host del servidor default.
-
-        Su valor se obtiene dependiendo del servidor definido en settings.DJREFUGIOANIMALES.default_server
-        """
-        api_settings = settings.DJREFUGIOANIMALES
-        default_server = api_settings.get('default_server')
-        return api_settings.get('servers').get(default_server).get('host')
-
-    @property
-    def __default_server_port(self):
-        """
-        Puerto default del servidor.
-
-        Su valor se obtiene dependiendo del servidor definido en settings.DJREFUGIOANIMALES.default_server
-        """
-        api_settings = settings.DJREFUGIOANIMALES
-        default_server = api_settings.get('default_server')
-        return api_settings.get('servers').get(default_server).get('port')
-
-    @property
-    def _base_endpoint(self):
-        """
-        Endpoint base del API de Refugio de Animales
-        """
-        return "{host}:{port}".format(host=self._host, port=self._port)
-
-
-class RefugioAnimalesAuthBase(RefugioAnimalesBase):
-    def __init__(self, *args, **kwargs):
-        super(RefugioAnimalesAuthBase, self).__init__(*args, **kwargs)
-        self._token_type = None
-        self._access_token = None
-
-    @property
-    def auth_endpoint(self):
-        """
-        Endpoint base para autentificación de API Refugio de Animales
-        """
-        return "{endpoint}/api/auth".format(endpoint=self._base_endpoint)
-
-    @property
-    def fmt_access_token(self):
-        """
-        Formato del header 'Authorization'
-        :return:
-        """
-        return '{token_type} {access_token}' \
-               ''.format(token_type=self._token_type,
-                         access_token=self._access_token)
-
-    # def verify_access_token(self, refresh=False):
-    #     """
-    #     Verifica el estado del access_token consultando a la API. Si el token no es valido se levantara un raise del
-    #     tipo DjRefugioAnimalesForbiddenError indicando que el token es invalido.
-    #
-    #     En caso contrario el metodo terminara con exito sin retornar ningun valor.
-    #
-    #     :param refresh: Indica si consulta el servicio para hacer refresh del access_token y obtener uno valido
-    #     :return: Regresa una tupla donde el primer elemento corresponde al access_token y el segundo al refresh_token
-    #     """
-    #     endpoint = "{endpoint}/verify/".format(endpoint=self.auth_endpoint)
-    #     if not self.access_token:
-    #         raise DjRefugioAnimalesForbiddenError
-    #     try:
-    #         response = requests.post(endpoint, data={
-    #             'token': self.access_token
-    #         })
-    #         # Comprueba el status code de la respuesta para validar si el access_token es incorrecto
-    #         if response.status_code == 401:
-    #             # Si no esta habilitado el refresh_token entonces levantamos directamente la excepcion
-    #             if not refresh:
-    #                 raise DjRefugioAnimalesForbiddenError
-    #             # La bandera de refresh esta activa. Por lo tanto intentamos hacer el refresh
-    #             self.refresh_access_token()
-    #         return self.access_token, self.refresh_token
-    #     except CONNECTION_ERROR:
-    #         raise DjRefugioAnimalesServerConnectionError
-    #
-    # def refresh_access_token(self):
-    #     """
-    #     Realiza el refresh del access_token.
-    #
-    #     :return: Regresa una tupla donde el primer elemento corresponde al access_token y el segundo al refresh_token
-    #     """
-    #     endpoint = "{endpoint}/refresh/".format(endpoint=self.auth_endpoint)
-    #     # Se comprueba si el refresh_token se encuentra definido
-    #     if not self.refresh_token:
-    #         raise DjRefugioAnimalesRefreshTokenError
-    #     # Consultamos el recurso para refrescar el access_token
-    #     try:
-    #         response = requests.post(endpoint, data={
-    #             'refresh': self.refresh_token
-    #         })
-    #         # El refresh_token es incorrecto
-    #         if response.status_code == 401:
-    #             raise DjRefugioAnimalesRefreshTokenError
-    #         # En este punto se pudo obtener un nuevo access_token
-    #         response_data = response.json()
-    #         self.access_token = response_data.get('access')
-    #         self.refresh_token = response_data.get('refresh')
-    #         return self.access_token, self.refresh_token
-    #     except CONNECTION_ERROR:
-    #         raise DjRefugioAnimalesServerConnectionError
-    #
-    # def login(self, username, password):
-    #     """
-    #     Realiza la autentificacion de un usuario admin de Django mediante username y password
-    #
-    #     :param username: User name perteneciente a usuario admin de django
-    #     :param password: Password perteneciente a usuario admin de django
-    #     :return: Regresa una tupla donde el primer elemento corresponde al access_token y el segundo al refresh_token
-    #     """
-    #     endpoint = "{endpoint}/".format(endpoint=self.auth_endpoint)
-    #     try:
-    #         response = requests.post(endpoint, data={
-    #             'username': username,
-    #             'password': password,
-    #         })
-    #         # Credenciales invalidas
-    #         if response.status_code != 200:
-    #             raise DjRefugioAnimalesAuthError
-    #         response_data = response.json()
-    #         # Inicio de sesión exitoso, retornamos los dos tokens
-    #         self.access_token = response_data.get('access')
-    #         self.refresh_token = response_data.get('refresh')
-    #         return self.access_token, self.refresh_token
-    #     except CONNECTION_ERROR:
-    #         raise DjRefugioAnimalesServerConnectionError
 
 
 class RefugioAnimalesMeta(type):
@@ -171,39 +31,6 @@ class RefugioAnimalesMeta(type):
             instance = super(RefugioAnimalesMeta, cls).__call__(*args, **kwargs)
             cls._instances[cls] = instance
         return cls._instances[cls]
-# endregion
-
-
-# region Authentication classes
-class TokenAuthentication(RefugioAnimalesAuthBase):
-    """
-    Autentificacion por Basic Token
-    """
-    def __init__(self, username, password, *args, **kwargs):
-        super(TokenAuthentication, self).__init__(*args, **kwargs)
-        self.__username = username
-        self.__password = password
-
-
-class JSONWebTokenAuthentication(RefugioAnimalesAuthBase):
-    """
-    Autentificación por JSON Web Token
-    """
-    def __init__(self, username, password, *args, **kwargs):
-        super(JSONWebTokenAuthentication, self).__init__(*args, **kwargs)
-        self.__username = username
-        self.__password = password
-
-
-class OAuth2Authentication(RefugioAnimalesAuthBase):
-    """
-    Autentificación por OAuth
-    """
-    def __init__(self, client_id, client_secret, *args, **kwargs):
-        super(OAuth2Authentication, self).__init__(*args, **kwargs)
-        self.__client_id = client_id
-        self.__client_secret = client_secret
-# endregion
 
 
 class RefugioAnimalesProvider(RefugioAnimalesBase):
@@ -271,10 +98,16 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
         """
         try:
             response = requests.get(endpoint, headers=self.headers)
+            # No se encontro el recurso solicitado
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
+            # No tiene permisos para acceder al recurso
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara una excepcion.
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__get_resource(endpoint)
             return response.json()
         except CONNECTION_ERROR:
             raise DjRefugioAnimalesServerConnectionError
@@ -292,9 +125,13 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             # Error por body incorrecto del request
             if response.status_code == 400:
                 raise DjRefugioAnimalesBadRequestError
-            # Error en permisos
+            # No tiene permisos para acceder al recurso
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara una excepcion.
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__create_resource(endpoint, payload)
             # verifica algun error desconocido
             if response.status_code != 201:
                 raise DjRefugioAnimalesServerUnknowError
@@ -317,9 +154,13 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             if response.status_code == 400:
                 # NOTE: Podria especificarse los campos para dar información al cliene
                 raise DjRefugioAnimalesBadRequestError
-            # Error en permisos
+            # Forbidden error
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara una excepcion.
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__edit_resource(endpoint, payload)
             # Elemento no encontrado
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
@@ -341,7 +182,11 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
         try:
             response = requests.delete(endpoint, headers=self.headers)
             if response.status_code == 401:
-                raise DjRefugioAnimalesForbiddenError
+                # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
+                # levantara la excepcion
+                self.__auth.get_access_token()
+                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
+                return self.__delete_resource(endpoint)
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
             # verifica algun error desconocido
