@@ -10,11 +10,9 @@ from apps.refugio_animales.forms import (
     DjRefugioAnimalesPersonaForm,
     DjRefugioAnimalesMascotaForm,
 )
-from djRefugioAnimalesClient.core.decorators.check_access_token import verify_access_token
+from djRefugioAnimalesClient.core.decorators import handle_api_errors
 from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
-    DjRefugioAnimalesServerConnectionError,
     DjRefugioAnimalesNotFoundError,
-    DjRefugioAnimalesForbiddenError,
     DjRefugioAnimalesServerUnknowError,
     DjRefugioAnimalesBadRequestError,
 )
@@ -23,23 +21,16 @@ from djRefugioAnimalesClient.core.utils import generic_api_delete
 
 
 # region CRUD mascotas
-@verify_access_token
+@handle_api_errors
 def pets_list(request):
     api = RefugioAnimalesProvider()
-    response = None
-    try:
-        response = api.get_pets()
-    except DjRefugioAnimalesForbiddenError:
-        messages.error(request, 'No cuenta con el permiso para acceder a este recurso')
-    except DjRefugioAnimalesServerConnectionError:
-        messages.error(request, 'Un error ha ocurrido intentando conectar con el servidor')
-
+    response = api.get_pets()
     return render(request, 'mascota_listado.html', {
         'object_list': response or []
     })
 
 
-@verify_access_token
+@handle_api_errors
 def pets_form(request, pk=None):
     RETURN_URL = 'pets_list'
     initial = {}
@@ -52,20 +43,10 @@ def pets_form(request, pk=None):
         except DjRefugioAnimalesNotFoundError:
             messages.warning(request, 'No se encontró la mascota con el id #{pk}'.format(pk=pk))
             return HttpResponseRedirect(reverse(RETURN_URL))
-        except DjRefugioAnimalesServerConnectionError:
-            messages.warning(request, 'Un error ha ocurrido esperando la respuesta del servidor'.format(pk=pk))
-            return HttpResponseRedirect(reverse(RETURN_URL))
 
-    # Se consulta la lista de personas y vacunas para llenar el formulario
-    try:
-        list_vaccines = api.get_vaccines()
-        list_owners = api.get_owners()
-    except DjRefugioAnimalesServerConnectionError:
-        messages.warning(request, 'Un error ha ocurrido esperando la respuesta del servidor'.format(pk=pk))
-        return HttpResponseRedirect(reverse(RETURN_URL))
     # Se parsea la lista de vacunas y dueños para obtener los choices de los inputs del formulario
     choices_owners = []
-    for ele in list_owners:
+    for ele in api.get_owners():
         choices_owners.append([
             ele.get('id'),
             '{first_name} {last_name}'.format(
@@ -74,7 +55,7 @@ def pets_form(request, pk=None):
             )
         ])
     choices_vaccines = []
-    for ele in list_vaccines:
+    for ele in api.get_vaccines():
         choices_vaccines.append([ele.get('id'), ele.get('nombre')])
     kwargs_form = {
         'choices_owners': choices_owners,
@@ -100,10 +81,8 @@ def pets_form(request, pk=None):
                     api.create_pet(cleaned_data)
             except DjRefugioAnimalesBadRequestError:
                 messages.error(request, 'Por favor verifique los datos del formulario')
-            except DjRefugioAnimalesForbiddenError:
-                messages.warning(request, 'No cuenta con el permiso para acceder a este recurso')
-            except (DjRefugioAnimalesServerUnknowError, DjRefugioAnimalesServerConnectionError):
-                messages.warning(request, 'Un error ha ocurrido con el servidor.')
+            except DjRefugioAnimalesServerUnknowError:
+                messages.warning(request, 'Ha ocurrido un erro desconocido con el servidor.')
                 return HttpResponseRedirect(reverse(RETURN_URL))
             messages.success(request, 'Se ha realizado con exito la accion sobre la mascota <strong>{name}</strong>'
                                       ''.format(name=form.cleaned_data.get('nombre')))
@@ -114,7 +93,7 @@ def pets_form(request, pk=None):
     })
 
 
-@verify_access_token
+@handle_api_errors
 def pets_delete(request, pk):
     RETURN_URL = 'pets_list'
     api = RefugioAnimalesProvider()
@@ -137,23 +116,16 @@ def pets_delete(request, pk):
 
 
 # region CRUD dueños/dueñas de mascotas
-@verify_access_token
+@handle_api_errors
 def owners_list(request):
     api = RefugioAnimalesProvider()
-    response = None
-    try:
-        response = api.get_owners()
-    except DjRefugioAnimalesForbiddenError:
-        messages.error(request, 'No cuenta con el permiso para acceder a este recurso')
-    except DjRefugioAnimalesServerConnectionError:
-        messages.error(request, 'Un error ha ocurrido intentando conectar con el servidor')
-
+    response = api.get_owners()
     return render(request, 'persona_listado.html', {
         'object_list': response or []
     })
 
 
-@verify_access_token
+@handle_api_errors
 def owners_form(request, pk=None):
     RETURN_URL = 'owners_list'
     initial = {}
@@ -181,10 +153,8 @@ def owners_form(request, pk=None):
                     api.create_owner(cleaned_data)
             except DjRefugioAnimalesBadRequestError:
                 messages.error(request, 'Por favor verifique los datos del formulario')
-            except DjRefugioAnimalesForbiddenError:
-                messages.warning(request, 'No cuenta con el permiso para acceder a este recurso')
-            except (DjRefugioAnimalesServerUnknowError, DjRefugioAnimalesServerConnectionError):
-                messages.warning(request, 'Un error ha ocurrido con el servidor.')
+            except DjRefugioAnimalesServerUnknowError:
+                messages.warning(request, 'Ha ocurrido un error desconocido en el servidor.')
                 return HttpResponseRedirect(reverse(RETURN_URL))
             messages.success(request, 'Se ha realizado con exito la accion sobre la vacuna <strong>{name}</strong>'
                                       ''.format(name=form.cleaned_data.get('nombre')))
@@ -195,7 +165,7 @@ def owners_form(request, pk=None):
     })
 
 
-@verify_access_token
+@handle_api_errors
 def owners_delete(request, pk):
     RETURN_URL = 'owners_list'
     api = RefugioAnimalesProvider()
@@ -218,23 +188,16 @@ def owners_delete(request, pk):
 
 
 # region CRUD vacunas
-@verify_access_token
+@handle_api_errors
 def vaccines_list(request):
     api = RefugioAnimalesProvider()
-    response = None
-    try:
-        response = api.get_vaccines()
-    except DjRefugioAnimalesForbiddenError:
-        messages.warning(request, 'No cuenta con el permiso para acceder a este recurso')
-    except DjRefugioAnimalesServerConnectionError:
-        messages.error(request, 'Un error ha ocurrido intentando conectar con el servidor')
-
+    response = api.get_vaccines()
     return render(request, 'vacuna_listado.html', {
         'object_list': response or []
     })
 
 
-@verify_access_token
+@handle_api_errors
 def vaccines_form(request, pk=None):
     RETURN_URL = 'vaccines_list'
     initial = {}
@@ -262,10 +225,8 @@ def vaccines_form(request, pk=None):
                     api.create_vaccine(cleaned_data)
             except DjRefugioAnimalesBadRequestError:
                 messages.error(request, 'Por favor verifique los datos del formulario')
-            except DjRefugioAnimalesForbiddenError:
-                messages.warning(request, 'No cuenta con el permiso para acceder a este recurso')
-            except (DjRefugioAnimalesServerUnknowError, DjRefugioAnimalesServerConnectionError):
-                messages.warning(request, 'Un error ha ocurrido con el servidor.')
+            except DjRefugioAnimalesServerUnknowError:
+                messages.warning(request, 'Ha ocurrido un error desconocido en el servidor.')
                 return HttpResponseRedirect(reverse(RETURN_URL))
             messages.success(request, 'Se ha realizado con exito la accion sobre la vacuna <strong>{name}</strong>'
                                       ''.format(name=form.cleaned_data.get('nombre')))
@@ -276,7 +237,7 @@ def vaccines_form(request, pk=None):
     })
 
 
-@verify_access_token
+@handle_api_errors
 def vaccines_delete(request, pk):
     RETURN_URL = 'vaccines_list'
     api = RefugioAnimalesProvider()

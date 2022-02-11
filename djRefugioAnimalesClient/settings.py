@@ -130,19 +130,19 @@ MESSAGE_TAGS = {
 
 # Configuracion de conexion para la api de djRefugioAnimales
 DJREFUGIOANIMALES = {
-    'default_server': 'jwt_server',
+    'default_server': 'oauth_server',
     'servers': {
         'token_auth_server': {
             'host': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_HOST'),
             'port': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_PORT'),
-            'user': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_USER'),
+            'username': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_USERNAME'),
             'password': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_PASSWORD'),
 
         },
         'jwt_server': {
             'host': env('DJREFUGIOANIMALES_SERVER_JWT_HOST'),
             'port': env('DJREFUGIOANIMALES_SERVER_JWT_PORT'),
-            'user': env('DJREFUGIOANIMALES_SERVER_JWT_USER'),
+            'username': env('DJREFUGIOANIMALES_SERVER_JWT_USERNAME'),
             'password': env('DJREFUGIOANIMALES_SERVER_JWT_PASSWORD'),
         },
         'oauth_server': {
