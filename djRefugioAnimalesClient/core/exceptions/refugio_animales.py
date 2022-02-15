@@ -32,3 +32,29 @@ class DjRefugioAnimalesNotFoundError(Exception):
 class DjRefugioAnimalesBadRequestError(Exception):
     def __str__(self):
         return 'Verifique los datos de su petición, hay campos incorrectos'
+
+
+class DjRefugioAnimalesOAuth2_0UnknownGrantType(Exception):
+    def __init__(self, grant_type):
+        self.__grant_type = grant_type
+
+    def __str__(self):
+        return '{grant_type} es un grant type desconocido.' \
+               ''.format(grant_type=self.__grant_type)
+
+
+class DjRefugioAnimalesOAuth2_0UserActionRequired(Exception):
+    def __init__(self, auth_endpoint, client_id):
+        self.__auth_endpoint = auth_endpoint
+        self.__client_id = client_id
+
+    @property
+    def redirect_url(self):
+        """
+        Construye la url para realizar el flujo de OAuth Authorization Code
+        """
+        oauth_endpoint = '{endpoint}/authorize/?response_type=code&client_id={client_id}'
+        return oauth_endpoint.format(endpoint=self.__auth_endpoint, client_id=self.__client_id)
+
+    def __str__(self):
+        return 'Se requiere acción del usuario para la autorización'

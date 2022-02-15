@@ -19,9 +19,11 @@ from django.views.static import serve
 # local imports
 from apps.refugio_animales.views import pets_list
 from djRefugioAnimalesClient import settings
+from djRefugioAnimalesClient.views import oauth_callback
 
 urlpatterns = [
     url(r'^$', TemplateView.as_view(template_name='index.html'), name='home'),
+    url(r'^oauth/callback', oauth_callback, name='oauth_callback'),
     url(r'^app/', include('apps.refugio_animales.urls')),
     url(r'^401/$', TemplateView.as_view(template_name='errors/forbidden.html'), name='forbidden_error')
 ]

@@ -8,10 +8,14 @@ from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
     DjRefugioAnimalesServerConnectionError,
     DjRefugioAnimalesServerUnknowError,
     DjRefugioAnimalesNotFoundError,
-    DjRefugioAnimalesBadRequestError, 
+    DjRefugioAnimalesBadRequestError,
+    DjRefugioAnimalesAuthError,
 )
-from djRefugioAnimalesClient.core.providers.refugio_animales.auth import TokenAuthentication, \
-    JSONWebTokenAuthentication, OAuth2Authentication
+from djRefugioAnimalesClient.core.providers.refugio_animales.auth import (
+    TokenAuthentication,
+    JSONWebTokenAuthentication,
+    OAuth2Authentication,
+)
 from djRefugioAnimalesClient.core.providers.refugio_animales.classes import RefugioAnimalesBase
 
 CONNECTION_ERROR = (
@@ -42,6 +46,15 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
     def __init__(self, auth=None, *args, **kwargs):
         super(RefugioAnimalesProvider, self).__init__(*args, **kwargs)
         self.__auth = auth or self.__default_auth_class
+        # Maximo numero de intentos de autentificacion seguidos
+        self.__max_auth_attempts = 3
+
+    @property
+    def auth(self):
+        """
+        Instancia de la clase de autentificación
+        """
+        return self.__auth
 
     @property
     def __default_auth_class(self):
@@ -74,7 +87,8 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             return OAuth2Authentication(host=server_cfg.get('host'),
                                         port=server_cfg.get('port'),
                                         client_id=server_cfg.get('client_id'),
-                                        client_secret=server_cfg.get('client_secret'))
+                                        client_secret=server_cfg.get('client_secret'),
+                                        grant_type=server_cfg.get('grant_type'))
 
     @property
     def api_endpoint(self):
@@ -92,7 +106,7 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             'Authorization': self.__auth.fmt_access_token,
         }
 
-    def __get_resource(self, endpoint):
+    def __get_resource(self, endpoint, auth_attempts=1):
         """
         Funcion generica que consulta algun recurso.
         Si un error ocurre esta funcion generica maneja los errores
@@ -109,13 +123,17 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
                 # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
                 # levantara una excepcion.
                 self.__auth.get_access_token()
-                # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
-                return self.__get_resource(endpoint)
+                # Se verifica si se ha sobrepasado el numero de intentos
+                if auth_attempts >= self.__max_auth_attempts:
+                    raise DjRefugioAnimalesAuthError
+                auth_attempts += 1
+                # En este punto deberia poder obtenerse un nuevo access_token y podemos volver a intentar
+                return self.__get_resource(endpoint, auth_attempts)
             return response.json()
         except CONNECTION_ERROR:
             raise DjRefugioAnimalesServerConnectionError
 
-    def __create_resource(self, endpoint, payload):
+    def __create_resource(self, endpoint, payload, auth_attempts=1):
         """
         Funcion generica que crea nuevo registro en un recurso especifico.
         Si un error ocurre esta funcion generica maneja los errores
@@ -133,8 +151,12 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
                 # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
                 # levantara una excepcion.
                 self.__auth.get_access_token()
+                # Se verifica si se ha sobrepasado el numero de intentos
+                if auth_attempts >= self.__max_auth_attempts:
+                    raise DjRefugioAnimalesAuthError
+                auth_attempts += 1
                 # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
-                return self.__create_resource(endpoint, payload)
+                return self.__create_resource(endpoint, payload, auth_attempts)
             # verifica algun error desconocido
             if response.status_code != 201:
                 raise DjRefugioAnimalesServerUnknowError
@@ -143,7 +165,7 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
         except CONNECTION_ERROR:
             raise DjRefugioAnimalesServerConnectionError
 
-    def __edit_resource(self, endpoint, payload):
+    def __edit_resource(self, endpoint, payload, auth_attempts=1):
         """
         Funcion generica que edita un registro de un recurso especifico.
         Si un error ocurre esta funcion generica maneja los errores
@@ -162,8 +184,12 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
                 # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
                 # levantara una excepcion.
                 self.__auth.get_access_token()
+                # Se verifica si se ha sobrepasado el numero de intentos
+                if auth_attempts >= self.__max_auth_attempts:
+                    raise DjRefugioAnimalesAuthError
+                auth_attempts += 1
                 # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
-                return self.__edit_resource(endpoint, payload)
+                return self.__edit_resource(endpoint, payload, auth_attempts)
             # Elemento no encontrado
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
@@ -175,7 +201,7 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
         except CONNECTION_ERROR:
             raise DjRefugioAnimalesServerConnectionError
 
-    def __delete_resource(self, endpoint):
+    def __delete_resource(self, endpoint, auth_attempts=1):
         """
         Funcion generica que elimina un recurso en especifico.
         Si un error ocurre esta funcion generica maneja los errores
@@ -188,8 +214,12 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
                 # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
                 # levantara la excepcion
                 self.__auth.get_access_token()
+                # Se verifica si se ha sobrepasado el numero de intentos
+                if auth_attempts >= self.__max_auth_attempts:
+                    raise DjRefugioAnimalesAuthError
+                auth_attempts += 1
                 # En este punto se pudo obtener un nuevo access_token y podemos volver a intentar
-                return self.__delete_resource(endpoint)
+                return self.__delete_resource(endpoint, auth_attempts)
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
             # verifica algun error desconocido

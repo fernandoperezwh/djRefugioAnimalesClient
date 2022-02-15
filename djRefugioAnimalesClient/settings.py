@@ -16,6 +16,7 @@ import environ
 import os
 
 from djRefugioAnimalesClient.core.providers import RefugioAnimalesProvider
+from djRefugioAnimalesClient.core.providers.refugio_animales.auth.OAuth2Authentication import OAuthGranTypes
 
 env = environ.Env(
     # set casting, default value
@@ -32,6 +33,7 @@ env = environ.Env(
 
     DJREFUGIOANIMALES_SERVER_OAUTH_HOST=(str, 'http://127.0.0.1'),
     DJREFUGIOANIMALES_SERVER_OAUTH_PORT=(int, 8012),
+    DJREFUGIOANIMALES_SERVER_OAUTH_GRANT_TYPE=(str, OAuthGranTypes.CLIENT_CREDENTIALS),
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -196,6 +198,8 @@ DJREFUGIOANIMALES = {
             # Puerto del servidor de la API de Refugio de Animales
             'port': env('DJREFUGIOANIMALES_SERVER_OAUTH_PORT'),
 
+            # Indica el flujo de OAuth, si no se especifica por default se usara client_credentials
+            'grant_type': env('DJREFUGIOANIMALES_SERVER_OAUTH_GRANT_TYPE'),
             # Client_id de la aplicación registrada en la API de Refugio de Animales para realizar la autentificación
             # utilizando el flujo 'client credentials' del OAuth 2.0
             'client_id': env('DJREFUGIOANIMALES_SERVER_OAUTH_CLIENT_ID'),
