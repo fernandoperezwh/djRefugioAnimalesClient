@@ -21,8 +21,17 @@ env = environ.Env(
     # set casting, default value
     DEBUG=(bool, False),
     DJREFUGIOANIMALES_API_SERVER=(str, 'token_auth_server'),
+
+    DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_HOST=(str, 'http://127.0.0.1'),
+    DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_PORT=(int, 8010),
     DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_TRY_AUTH_IN_TOKEN_FAIL=(bool, False),
+
+    DJREFUGIOANIMALES_SERVER_JWT_HOST=(str, 'http://127.0.0.1'),
+    DJREFUGIOANIMALES_SERVER_JWT_PORT=(int, 8011),
     DJREFUGIOANIMALES_SERVER_JWT_TRY_AUTH_IN_TOKEN_FAIL=(bool, False),
+
+    DJREFUGIOANIMALES_SERVER_OAUTH_HOST=(str, 'http://127.0.0.1'),
+    DJREFUGIOANIMALES_SERVER_OAUTH_PORT=(int, 8012),
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
