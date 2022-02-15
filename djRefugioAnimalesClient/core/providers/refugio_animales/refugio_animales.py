@@ -8,7 +8,7 @@ from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
     DjRefugioAnimalesServerConnectionError,
     DjRefugioAnimalesServerUnknowError,
     DjRefugioAnimalesNotFoundError,
-    DjRefugioAnimalesBadRequestError,
+    DjRefugioAnimalesBadRequestError, 
 )
 from djRefugioAnimalesClient.core.providers.refugio_animales.auth import TokenAuthentication, \
     JSONWebTokenAuthentication, OAuth2Authentication
@@ -57,14 +57,17 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             return TokenAuthentication(host=server_cfg.get('host'),
                                        port=server_cfg.get('port'),
                                        username=server_cfg.get('username'),
-                                       password=server_cfg.get('password'))
+                                       password=server_cfg.get('password'),
+                                       access_token=server_cfg.get('access_token'))
 
         elif default_server == 'jwt_server':
             server_cfg = api_settings.get('servers').get('jwt_server')
             return JSONWebTokenAuthentication(host=server_cfg.get('host'),
                                               port=server_cfg.get('port'),
                                               username=server_cfg.get('username'),
-                                              password=server_cfg.get('password'))
+                                              password=server_cfg.get('password'),
+                                              access_token=server_cfg.get('access_token'),
+                                              refresh_token=server_cfg.get('refresh_token'))
 
         elif default_server == 'oauth_server':
             server_cfg = api_settings.get('servers').get('oauth_server')
@@ -102,7 +105,7 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
             if response.status_code == 404:
                 raise DjRefugioAnimalesNotFoundError
             # No tiene permisos para acceder al recurso
-            if response.status_code == 401:
+            if response.status_code in (401, 403):
                 # Intentamos obtener un nuevo access_token. Si las credenciales en el settings son incorrectas entonces
                 # levantara una excepcion.
                 self.__auth.get_access_token()

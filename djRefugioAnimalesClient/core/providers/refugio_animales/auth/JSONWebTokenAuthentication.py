@@ -1,6 +1,9 @@
 # coding=utf-8
+# python packages
 import requests
-
+# django packages
+from django.conf import settings
+# local packages
 from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
     DjRefugioAnimalesAuthError,
     DjRefugioAnimalesServerConnectionError,
@@ -17,10 +20,13 @@ class JSONWebTokenAuthentication(AuthenticationBase):
     """
     Autentificación por JSON Web Token
     """
-    def __init__(self, username, password, *args, **kwargs):
+    def __init__(self, username, password, access_token=None, refresh_token=None, *args, **kwargs):
         super(JSONWebTokenAuthentication, self).__init__(*args, **kwargs)
         self.__username = username
         self.__password = password
+        self._token_type = 'Bearer'
+        self._access_token = access_token
+        self._refresh_token = refresh_token
 
     def __get_access_token_via_refresh_token(self):
         """
@@ -55,11 +61,20 @@ class JSONWebTokenAuthentication(AuthenticationBase):
 
         Este tipo de autentificación soporta refresh_token
         """
+        config = settings.DJREFUGIOANIMALES.get('servers').get('jwt_server')
         try:
 
             # Primero intentamos obtener un nuevo access_token mediante el refresh_token. De esta manera no requerimos
             # las credenciales del usuario para no comprometerlo aun más
             response = self.__get_access_token_via_refresh_token()
+
+            # Si no esta configurado el intentar autentificar cuando el access_token y refresh_token falla, entonces
+            # levantamos directamente la exception
+            are_tokens_present = self._access_token or self._refresh_token
+            try_auth_in_token_fail = config.get('try_auth_in_token_fail')
+            if are_tokens_present and not response and not try_auth_in_token_fail:
+                raise DjRefugioAnimalesAuthError
+
             # En caso de que el refresh_token no funciono, entonces recurrimos en enviar las credenciales del usuario
             # para obtener un nuevo access_token
             if not response:

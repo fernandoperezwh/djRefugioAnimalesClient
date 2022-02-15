@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Django settings for djRefugioAnimalesClient project.
 
@@ -18,7 +19,10 @@ from djRefugioAnimalesClient.core.providers import RefugioAnimalesProvider
 
 env = environ.Env(
     # set casting, default value
-    DEBUG=(bool, False)
+    DEBUG=(bool, False),
+    DJREFUGIOANIMALES_API_SERVER=(str, 'token_auth_server'),
+    DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_TRY_AUTH_IN_TOKEN_FAIL=(bool, False),
+    DJREFUGIOANIMALES_SERVER_JWT_TRY_AUTH_IN_TOKEN_FAIL=(bool, False),
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -128,27 +132,66 @@ MESSAGE_TAGS = {
     messages.ERROR:   'alert-danger',
 }
 
-# Configuracion de conexion para la api de djRefugioAnimales
 DJREFUGIOANIMALES = {
-    'default_server': 'oauth_server',
+    # Indica al proyecto que configuración tomar dentro de 'DJREFUGIOANIMALES.servers'
+    'default_server': env('DJREFUGIOANIMALES_API_SERVER'),
+
+    # Establece los servidores disponibles para la API de Refugio de animales y las credenciales de acceso para la
+    # autentificación
     'servers': {
         'token_auth_server': {
+            # Host del servidor de la API de Refugio de Animales
             'host': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_HOST'),
+            # Puerto del servidor de la API de Refugio de Animales
             'port': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_PORT'),
+
+            # Username para realizar la autentificación y obtener el access_token haciendo uso también del 'password'
             'username': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_USERNAME'),
+            # Password para realizar la autentificación y obtener el access_token haciendo uso también del 'username'
             'password': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_PASSWORD'),
 
+            # Cuando se especifica un 'access_token' se usara para realizar la autentificación en lugar de usar el
+            # 'username' y 'password'
+            'access_token': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_ACCESS_TOKEN'),
+
+            # Cuando el 'access_token' es incorrecto se fuerza a intentar en realizar la autentificación por 'username'
+            # y 'password'
+            # Por default su valor es False
+            'try_auth_in_token_fail': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_TRY_AUTH_IN_TOKEN_FAIL'),
         },
         'jwt_server': {
+            # Host del servidor de la API de Refugio de Animales
             'host': env('DJREFUGIOANIMALES_SERVER_JWT_HOST'),
+            # Puerto del servidor de la API de Refugio de Animales
             'port': env('DJREFUGIOANIMALES_SERVER_JWT_PORT'),
+
+            # Username para realizar la autentificación y obtener el access_token haciendo uso también del 'password'
             'username': env('DJREFUGIOANIMALES_SERVER_JWT_USERNAME'),
+            # Password para realizar la autentificación y obtener el access_token haciendo uso también del 'username'
             'password': env('DJREFUGIOANIMALES_SERVER_JWT_PASSWORD'),
+
+            # Cuando se especifica un 'access_token' se usara para realizar la autentificación en lugar de usar el
+            # 'username' y 'password'
+            'access_token': env('DJREFUGIOANIMALES_SERVER_JWT_ACCESS_TOKEN'),
+            # Cuando se especifica un 'refresh_token' se usara para realizar el refresh del 'access_token'
+            'refresh_token': env('DJREFUGIOANIMALES_SERVER_JWT_REFRESH_TOKEN'),
+
+            # Cuando el 'access_token' y 'refresh_token' son incorrectos se fuerza a intentar en realizar la
+            # autentificación por 'username' y 'password'
+            # Por default su valor es False
+            'try_auth_in_token_fail': env('DJREFUGIOANIMALES_SERVER_JWT_TRY_AUTH_IN_TOKEN_FAIL'),
         },
         'oauth_server': {
+            # Host del servidor de la API de Refugio de Animales
             'host': env('DJREFUGIOANIMALES_SERVER_OAUTH_HOST'),
+            # Puerto del servidor de la API de Refugio de Animales
             'port': env('DJREFUGIOANIMALES_SERVER_OAUTH_PORT'),
+
+            # Client_id de la aplicación registrada en la API de Refugio de Animales para realizar la autentificación
+            # utilizando el flujo 'client credentials' del OAuth 2.0
             'client_id': env('DJREFUGIOANIMALES_SERVER_OAUTH_CLIENT_ID'),
+            # Client_secret de la aplicación registrada en la API de Refugio de Animales para realizar la
+            # autentificación utilizando el flujo 'client credentials' del OAuth 2.0
             'client_secret': env('DJREFUGIOANIMALES_SERVER_OAUTH_CLIENT_SECRET'),
         },
     },
