@@ -1,6 +1,9 @@
 # coding=utf-8
+# python packages
 import requests
-
+#django packages
+from django.conf import settings
+# local packages
 from djRefugioAnimalesClient.core.exceptions.refugio_animales import (
     DjRefugioAnimalesAuthError,
     DjRefugioAnimalesServerConnectionError,
@@ -17,10 +20,12 @@ class TokenAuthentication(AuthenticationBase):
     """
     Autentificacion por Basic Token
     """
-    def __init__(self, username, password, *args, **kwargs):
+    def __init__(self, username, password, access_token=None, *args, **kwargs):
         super(TokenAuthentication, self).__init__(*args, **kwargs)
         self.__username = username
         self.__password = password
+        self._token_type = 'Token'
+        self._access_token = access_token
 
     def __get_access_token_via_username_and_password(self):
         """
@@ -37,9 +42,13 @@ class TokenAuthentication(AuthenticationBase):
         return response.json()
 
     def get_access_token(self):
-        """
-        Intenta obtener un nuevo access_token para la consulta del api de refugio de animales.
-        """
+        config = settings.DJREFUGIOANIMALES.get('servers').get('token_auth_server')
+        # Si no esta configurado el intentar autentificar cuando el token falla entonces levantamos directamente la
+        # exception
+        if self._access_token and not config.get('try_auth_in_token_fail'):
+            raise DjRefugioAnimalesAuthError
+
+        # Intentamos realizar la autentificacion por el username y password
         try:
             response = self.__get_access_token_via_username_and_password()
             # Si no regreso ningún valor entonces el username y password son incorrectos y levantamos la excepción
@@ -48,7 +57,7 @@ class TokenAuthentication(AuthenticationBase):
             # En este punto el token se pudo obtener correctamente asi que podemos actualizar su valor
             self._token_type = response.get('token_type')
             self._access_token = response.get('access_token')
-            self._refresh_token = None
+
         except CONNECTION_ERROR:
             # Error estableciendo conexión con el servidor
             raise DjRefugioAnimalesServerConnectionError

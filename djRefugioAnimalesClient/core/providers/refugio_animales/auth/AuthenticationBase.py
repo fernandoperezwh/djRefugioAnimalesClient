@@ -8,7 +8,6 @@ class AuthenticationBase(RefugioAnimalesBase):
         super(AuthenticationBase, self).__init__(*args, **kwargs)
         self._token_type = None
         self._access_token = None
-        self._refresh_token = None
 
     @property
     def auth_endpoint(self):
