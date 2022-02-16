@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %} {% endblock %}
+
+{% block main_content %}
+
+    <div class="container">
+        <div class="row">
+            <h1>Authorization in progress...</h1>
+        </div>
+    </div>
+    <script type="application/javascript">
+        {# Obtenemos el hash de la url pero eliminando el primer elemento que es el signo '#' #}
+        const hash = window.location.hash.substring(1);
+
+        {% comment %}
+        En '500' milisegundos se le redireccionara a esta misma view pero ahora django podra acceder a estos datos desde
+        request.GET y continuar con el flujo como si fuera el 'Authorization Code Grant'
+        {% endcomment %}
+        const redirectUrl = "{% url 'oauth_callback' %}" + "?" + hash;
+        console.log(redirectUrl);
+        setTimeout(function () {
+            window.location.replace(redirectUrl);
+        }, 500)
+    </script>
+{% endblock  %}

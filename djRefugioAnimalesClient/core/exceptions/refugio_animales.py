@@ -44,7 +44,8 @@ class DjRefugioAnimalesOAuth2_0UnknownGrantType(Exception):
 
 
 class DjRefugioAnimalesOAuth2_0UserActionRequired(Exception):
-    def __init__(self, auth_endpoint, client_id):
+    def __init__(self, response_type, auth_endpoint, client_id):
+        self.__response_type = response_type
         self.__auth_endpoint = auth_endpoint
         self.__client_id = client_id
 
@@ -53,8 +54,12 @@ class DjRefugioAnimalesOAuth2_0UserActionRequired(Exception):
         """
         Construye la url para realizar el flujo de OAuth Authorization Code
         """
-        oauth_endpoint = '{endpoint}/authorize/?response_type=code&client_id={client_id}'
-        return oauth_endpoint.format(endpoint=self.__auth_endpoint, client_id=self.__client_id)
+        oauth_endpoint = '{endpoint}/authorize/?response_type={response_type}&client_id={client_id}'
+        return oauth_endpoint.format(
+            endpoint=self.__auth_endpoint,
+            response_type=self.__response_type,
+            client_id=self.__client_id
+        )
 
     def __str__(self):
         return 'Se requiere acción del usuario para la autorización'

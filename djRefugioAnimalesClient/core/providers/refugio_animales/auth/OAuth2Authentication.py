@@ -104,7 +104,7 @@ class OAuth2Authentication(AuthenticationBase):
         # levantamos la excepcion ya que dependemos de que el resource owner de la autorizacion desde el servidor que
         # tiene la API
         if not self.__code:
-            raise DjRefugioAnimalesOAuth2_0UserActionRequired(self.auth_endpoint, self.__client_id)
+            raise DjRefugioAnimalesOAuth2_0UserActionRequired('code', self.auth_endpoint, self.__client_id)
 
         # El resource owner ya nos autorizo y tenemos el code para obtener el access_token
         # noinspection DuplicatedCode
@@ -141,10 +141,12 @@ class OAuth2Authentication(AuthenticationBase):
 
     def __get_access_token_via_implicit_grant(self):
         """
-        TODO: Agregar soporte
         Intenta obtener un nuevo access_token siguiendo el Implicit Grant
         """
-        pass
+        if not (self._access_token or self.__refresh_token):
+            # TODO: Obtener un nuevo access_token si tenemos el __refresh_token
+            raise DjRefugioAnimalesOAuth2_0UserActionRequired('token', self.auth_endpoint, self.__client_id)
+        return
 
     def __get_access_token(self):
         """
@@ -164,6 +166,24 @@ class OAuth2Authentication(AuthenticationBase):
             # Implicit Grant Type
             response = self.__get_access_token_via_implicit_grant()
         return response
+
+    def handle_callback(self, payload):
+        """
+        Maneja la respuesta del servidor de OAuth para el redirect en Authorization Code Grant e Implicit Grant
+        """
+        if self.__grant_type == OAuthGranTypes.AUTHORIZATION_CODE:
+            # Obtenemos el 'code' de los parametros de la url para posteriormente usarlo y obtener un access_token
+            # Ejemplo:
+            # http://localhost:8000/oauth/callback#?code=uVqLxiHDKIirldDZQfSnDsmYW1Abj2
+            self.__code = payload.get('code')
+        elif self.__grant_type == OAuthGranTypes.IMPLICIT:
+            # Obtenemos los valores de 'access_token', 'token_type' y 'expires_in' que vienen definidos implicitamente
+            # en los parametros de la url.
+            # Ejemplo:
+            # http://localhost:8000/oauth/callback#access_token=Mg4SkFuTYLeRq4QcUNgvaymHk1INtq&token_type=Bearer&state=&expires_in=36000&scope=read+write
+            self._access_token = payload.get('access_token')
+            self._token_type = payload.get('token_type')
+            self.__expires_in = payload.get('expires_in')
 
     def get_access_token(self):
         """
