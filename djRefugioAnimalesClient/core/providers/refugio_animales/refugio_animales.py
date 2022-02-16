@@ -88,7 +88,9 @@ class RefugioAnimalesProvider(RefugioAnimalesBase):
                                         port=server_cfg.get('port'),
                                         client_id=server_cfg.get('client_id'),
                                         client_secret=server_cfg.get('client_secret'),
-                                        grant_type=server_cfg.get('grant_type'))
+                                        grant_type=server_cfg.get('grant_type'),
+                                        username=server_cfg.get('username'),
+                                        password=server_cfg.get('password'))
 
     @property
     def api_endpoint(self):

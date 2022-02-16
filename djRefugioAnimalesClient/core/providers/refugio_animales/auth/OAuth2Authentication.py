@@ -20,16 +20,16 @@ class OAuthGranTypes:
     """
     Contiene los grant types de OAuth 2.0
     """
-    AUTHORIZATION_CODE = 'authorization_code'
-    IMPLICIT = 'implicit'
-    RESOURCE_OWNER_PASSWORD = 'resource_owner_password'
     CLIENT_CREDENTIALS = 'client_credentials'
+    AUTHORIZATION_CODE = 'authorization_code'
+    RESOURCE_OWNER_PASSWORD = 'password'
+    IMPLICIT = 'implicit'
 
     LIST_GRANT_TYPES = (
-        AUTHORIZATION_CODE,
-        IMPLICIT,
-        RESOURCE_OWNER_PASSWORD,
         CLIENT_CREDENTIALS,
+        AUTHORIZATION_CODE,
+        RESOURCE_OWNER_PASSWORD,
+        IMPLICIT,
     )
 
 
@@ -37,21 +37,29 @@ class OAuth2Authentication(AuthenticationBase):
     """
     Autentificación por OAuth
     """
-    def __init__(self, client_id, client_secret, grant_type=None, *args, **kwargs):
+    def __init__(self, client_id, client_secret, grant_type=None, username=None, password=None, *args, **kwargs):
         super(OAuth2Authentication, self).__init__(*args, **kwargs)
-        self.__client_id = client_id
-        self.__client_secret = client_secret
-        self.__expires_in = None
-        self.__scope = None
 
-        # Contiene el codigo para seguir el Authorization Code Grant Type
-        self.__code = None
         # Se verifica que el grant_type de entrada sea valido
         grant_type = grant_type or OAuthGranTypes.CLIENT_CREDENTIALS
         if grant_type in OAuthGranTypes.LIST_GRANT_TYPES:
             self.__grant_type = grant_type
         else:
             raise DjRefugioAnimalesOAuth2_0UnknownGrantType(grant_type)
+
+        # Variables generales para todos los grant types
+        self.__client_id = client_id
+        self.__client_secret = client_secret
+        self.__expires_in = None
+        self.__scope = None
+
+        # Variables propios de Authorization Code Grant
+        self.__code = None
+
+        # Variables propias de Resource Owner Password Grant
+        self.__username = username
+        self.__password = password
+        self.__refresh_token = None
 
     @property
     def __credential(self):
@@ -73,9 +81,9 @@ class OAuth2Authentication(AuthenticationBase):
         """
         self.__code = code
 
-    def __get_access_token_via_client_credentials(self):
+    def __get_access_token_via_client_credentials_grant(self):
         """
-        Intenta obtener un nuevo access_token siguiendo el Client Credentials Grant Type
+        Intenta obtener un nuevo access_token siguiendo el Client Credentials Grant
         """
         endpoint = '{endpoint}/token/'.format(endpoint=self.auth_endpoint)
         response = requests.post(endpoint, data={'grant_type': OAuthGranTypes.CLIENT_CREDENTIALS}, headers={
@@ -88,9 +96,9 @@ class OAuth2Authentication(AuthenticationBase):
             return
         return response.json()
 
-    def __get_access_token_via_authorization_code(self):
+    def __get_access_token_via_authorization_code_grant(self):
         """
-        Intenta obtener un nuevo access_token siguiendo el Authorization Code Grant Type
+        Intenta obtener un nuevo access_token siguiendo el Authorization Code Grant
         """
         # Se verifica si ya contamos con el code para seguir este grant type. Si aun no contamos con uno entonces
         # levantamos la excepcion ya que dependemos de que el resource owner de la autorizacion desde el servidor que
@@ -115,6 +123,29 @@ class OAuth2Authentication(AuthenticationBase):
             return
         return response.json()
 
+    def __get_access_token_via_resource_owner_password_grant(self):
+        """
+        Intenta obtener un nuevo access_token siguiendo el Resource Ownser Password Grant
+        """
+        # noinspection DuplicatedCode
+        endpoint = '{endpoint}/token/'.format(endpoint=self.auth_endpoint)
+        response = requests.post(endpoint, data={
+            'grant_type': OAuthGranTypes.RESOURCE_OWNER_PASSWORD,
+            'username': self.__username,
+            'password': self.__password,
+        }, auth=(self.__client_id, self.__client_secret))
+        # Verificamos si ocurrió algún error, eso significara que las credenciales de acceso son incorrectas
+        if response.status_code != 200:
+            return
+        return response.json()
+
+    def __get_access_token_via_implicit_grant(self):
+        """
+        TODO: Agregar soporte
+        Intenta obtener un nuevo access_token siguiendo el Implicit Grant
+        """
+        pass
+
     def __get_access_token(self):
         """
         Aplica el flujo de OAuth 2.0 conforme a la configuración del proyecto
@@ -122,16 +153,16 @@ class OAuth2Authentication(AuthenticationBase):
         response = None
         if self.__grant_type == OAuthGranTypes.CLIENT_CREDENTIALS:
             # Client Credentials Grant Type
-            response = self.__get_access_token_via_client_credentials()
+            response = self.__get_access_token_via_client_credentials_grant()
         elif self.__grant_type == OAuthGranTypes.AUTHORIZATION_CODE:
             # Authorization Code Grant Type
-            response = self.__get_access_token_via_authorization_code()
+            response = self.__get_access_token_via_authorization_code_grant()
         elif self.__grant_type == OAuthGranTypes.RESOURCE_OWNER_PASSWORD:
-            # Resouce owner password
-            pass
+            # Resource owner password
+            response = self.__get_access_token_via_resource_owner_password_grant()
         elif self.__grant_type == OAuthGranTypes.IMPLICIT:
             # Implicit Grant Type
-            pass
+            response = self.__get_access_token_via_implicit_grant()
         return response
 
     def get_access_token(self):
@@ -146,8 +177,9 @@ class OAuth2Authentication(AuthenticationBase):
             # En este punto el token se pudo obtener correctamente asi que podemos actualizar su valor
             self._token_type = response.get('token_type')
             self._access_token = response.get('access_token')
-            self.__expires_in = None
-            self.__scope = None
+            self.__expires_in = response.get('expires_in')
+            self.__scope = response.get('scope')
+            self.__refresh_token = response.get('refresh_token')
         except CONNECTION_ERROR:
             # Error estableciendo conexión con el servidor
             raise DjRefugioAnimalesServerConnectionError

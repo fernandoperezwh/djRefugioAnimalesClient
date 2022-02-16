@@ -161,12 +161,12 @@ DJREFUGIOANIMALES = {
             # Password para realizar la autentificación y obtener el access_token haciendo uso también del 'username'
             'password': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_PASSWORD'),
 
-            # Cuando se especifica un 'access_token' se usara para realizar la autentificación en lugar de usar el
-            # 'username' y 'password'
+            # [OPCIONAL] Cuando se especifica un 'access_token' se usara para realizar la autentificación en lugar de
+            # usar el 'username' y 'password'
             'access_token': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_ACCESS_TOKEN'),
 
-            # Cuando el 'access_token' es incorrecto se fuerza a intentar en realizar la autentificación por 'username'
-            # y 'password'
+            # [OPCIONAL] Cuando el 'access_token' es incorrecto se fuerza a intentar en realizar la autentificación por
+            # 'username' y 'password'
             # Por default su valor es False
             'try_auth_in_token_fail': env('DJREFUGIOANIMALES_SERVER_TOKEN_AUTH_TRY_AUTH_IN_TOKEN_FAIL'),
         },
@@ -181,13 +181,13 @@ DJREFUGIOANIMALES = {
             # Password para realizar la autentificación y obtener el access_token haciendo uso también del 'username'
             'password': env('DJREFUGIOANIMALES_SERVER_JWT_PASSWORD'),
 
-            # Cuando se especifica un 'access_token' se usara para realizar la autentificación en lugar de usar el
-            # 'username' y 'password'
+            # [OPCIONAL] Cuando se especifica un 'access_token' se usara para realizar la autentificación en lugar de
+            # usar el 'username' y 'password'
             'access_token': env('DJREFUGIOANIMALES_SERVER_JWT_ACCESS_TOKEN'),
-            # Cuando se especifica un 'refresh_token' se usara para realizar el refresh del 'access_token'
+            # [OPCIONAL] Cuando se especifica un 'refresh_token' se usara para realizar el refresh del 'access_token'
             'refresh_token': env('DJREFUGIOANIMALES_SERVER_JWT_REFRESH_TOKEN'),
 
-            # Cuando el 'access_token' y 'refresh_token' son incorrectos se fuerza a intentar en realizar la
+            # [OPCIONAL] Cuando el 'access_token' y 'refresh_token' son incorrectos se fuerza a intentar en realizar la
             # autentificación por 'username' y 'password'
             # Por default su valor es False
             'try_auth_in_token_fail': env('DJREFUGIOANIMALES_SERVER_JWT_TRY_AUTH_IN_TOKEN_FAIL'),
@@ -200,12 +200,19 @@ DJREFUGIOANIMALES = {
 
             # Indica el flujo de OAuth, si no se especifica por default se usara client_credentials
             'grant_type': env('DJREFUGIOANIMALES_SERVER_OAUTH_GRANT_TYPE'),
-            # Client_id de la aplicación registrada en la API de Refugio de Animales para realizar la autentificación
-            # utilizando el flujo 'client credentials' del OAuth 2.0
+            # Client_id de la aplicación registrada en la API de Refugio de Animales para realizar la autorización
+            # utilizando los flujos de OAuth 2.0
             'client_id': env('DJREFUGIOANIMALES_SERVER_OAUTH_CLIENT_ID'),
             # Client_secret de la aplicación registrada en la API de Refugio de Animales para realizar la
-            # autentificación utilizando el flujo 'client credentials' del OAuth 2.0
+            # autorización utilizando los flujos de OAuth 2.0
             'client_secret': env('DJREFUGIOANIMALES_SERVER_OAUTH_CLIENT_SECRET'),
+
+            # [OPCIONAL] Username del usuario registrado en la API de Refugio de Animales para realizar la autorización
+            # mediante el Resource Owner Password Grant
+            'username': env('DJREFUGIOANIMALES_SERVER_OAUTH_USERNAME'),
+            # [OPCIONAL] Password del usuario registrado en la API de Refugio de Animales para realizar la autorización
+            # mediante el Resource Owner Password Grant
+            'password': env('DJREFUGIOANIMALES_SERVER_OAUTH_PASSWORD'),
         },
     },
 }
